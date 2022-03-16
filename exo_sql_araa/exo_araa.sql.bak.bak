@@ -185,4 +185,3 @@ SELECT * from serv,emp WHERE serv.noserv = emp.noserv AND ville="LILLE";
 
 
 
-
