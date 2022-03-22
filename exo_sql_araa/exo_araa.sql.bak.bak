@@ -171,9 +171,212 @@ SELECT service from serv WHERE noserv IN (SELECT noserv FROM emp);
 SELECT * from serv,emp WHERE serv.noserv = emp.noserv AND ville="LILLE";
 
 /* 56 : Sélectionner les employés qui ont le même chef que DUBOIS, DUBOIS exclu*/
+select * from emp where nom <> 'DUBOIS' and sup=(select sup from emp where nom='DUBOIS');
 
+/*57 : Sélectionner les employés embauchés le même jour que DUMONT.*/
+SELECT * from emp WHERE embauche = (SELECT embauche FROM emp WHERE nom="DUMONT");
 
+/*58 : Sélectionner les nom et date d'embauche des employés plus anciens que MINET, dans l’ordre des embauches.*/
+SELECT nom, embauche from emp WHERE embauche < (SELECT embauche FROM emp WHERE nom="MINET") ORDER BY embauche;
 
+/*59 : Sélectionner le nom, le prénom, la date d’embauche des employés plus anciens que tous les employés du service N°6. (Attention MIN)*/
+SELECT DISTINCT a.nom,a.prenom,a.embauche FROM emp a, emp b WHERE a.embauche < b.embauche AND b.noserv=6;
+
+/*60 : Sélectionner le nom, le prénom, le revenu mensuel des employés qui gagnent plus qu'au moins un employé du service N°3, trier le résultat dans l'ordre croissant des revenus mensuels.*/
+select a.nom, a.prenom, (a.sal + a.comm) as revenu from emp a , emp b where (a.sal + a.comm) >= (b.sal + b.comm) and b.noserv = 3 order by revenu;
+
+/*61 : Sélectionner les noms, le numéro de service, l’emplois et le salaires des personnes travaillant dans la même ville que HAVET.*/
+select distinct nom, emp.noserv, emploi, sal, serv.ville from emp, serv where ville = (select ville from emp e inner join serv s where e.noserv = s.noserv and nom = 'HAVET');
+
+/*62 : Sélectionner les employés du service 1, ayant le même emploi qu'un employé du service N°3.*/
+SELECT a.* FROM emp a,emp b WHERE a.noserv=1 AND (a.emploi = b.emploi and b.noserv =3);
+
+/*63 : Sélectionner les employés du service 1 dont l'emploi n'existe pas dans le service 3.*/
+SELECT a.* FROM emp a,emp b WHERE a.noserv=1 AND (a.emploi != b.emploi and b.noserv =3);
+
+/*64 : Sélectionner nom, prénom, emploi, salaire pour les employés ayant même emploi et un salaire supérieur à celui de CARON.*/
+SELECT a.nom,a.prenom,a.emploi,a.sal FROM emp a, emp b WHERE a.emploi = b.emploi AND a.sal > b.sal and b.nom = "CARON";
+
+/*65 : Sélectionner les employés du service N°1 ayant le même emploi qu'un employé du service des VENTES.*/
+SELECT DISTINCT a.* FROM emp a, emp b, serv s WHERE a.noserv = 1 AND a.emploi = b.emploi AND s.service = "VENTES";
+
+/*66 : Sélectionner les employés de LILLE ayant le même emploi que RICHARD, trier le résultat dans l'ordre alphabétique des noms.*/
+SELECT DISTINCT e.* from emp as e, serv as s WHERE s.ville = "LILLE" AND e.emploi = (SELECT emploi FROM emp WHERE nom="RICHARD") ORDER by nom;
+
+/*67 : Sélectionner les employés dont le salaire est plus élevé que le salaire moyen de leur service (moyenne des salaires = avg(sal)), résultats triés par numéros de service.*/
+SELECT emp.* FROM emp, serv WHERE serv.noserv=emp.noserv AND sal > (SELECT AVG (sal) from emp) ORDER BY noserv;
+
+/*68 : Sélectionner les employés du service INFORMATIQUE embauchés la même année qu'un employé du service VENTES. (année -> oracle : to_char(embauche,’YYYY’)> MYSQL: DATE_FORMAT(embauche,’%Y’)*/
+SELECT DISTINCT e.* 
+FROM emp as e, emp as f,serv as s,serv as t
+WHERE e.noserv = s.noserv AND (s.service = "INFORMATIQUE") AND DATE_FORMAT(e.embauche,"%Y") 
+IN(SELECT DATE_FORMAT(f.embauche,"%Y") where t.service = 'VENTES');
+
+/*69 : Sélectionner le nom, l’emploi, la ville pour les employés qui ne travaillent pas dans le même service que leur supérieur hiérarchique direct.*/
+select nom, emploi, ville from emp e, serv s where e.noserv = s.noserv and e.noserv <> (select noserv from emp e1 where e1.noemp = e.sup);
+
+/*70 : Sélectionner le nom, le prénom, le service, le revenu des employés qui ont des subalternes, trier le résultat suivant le revenu décroissant.*/
+SELECT nom,prenom,sal, service from emp, serv WHERE emp.noserv = serv.noserv AND emp.noemp IN (SELECT sup from emp);
+
+/*71 :Sélectionner le nom, l’emploi, le revenu mensuel (nommé Revenu) avec deux décimales pour tous les employés, dans l’ordre des revenus décroissants.*/
+SELECT nom,emploi, round(sal,2) AS revenu from emp ORDER BY revenu DESC; 
+
+/*72 : Sélectionner le nom, le salaire, commission des employés dont la commission représente plus que le double du salaire.*/
+SELECT nom,sal,comm from emp WHERE comm>sal*2;
+
+/*73 : Sélectionner nom, prénom, emploi, le pourcentage de commission (deux décimales) par rapport au revenu mensuel ( renommé "% Commissions") , pour tous les vendeurs dans
+l'ordre décroissant de ce pourcentage*/
+select nom,sal,comm, ROUND((comm/sal)*100, 2) as commissions from emp ORDER BY commissions DESC;
+
+/*74 : Sélectionner le nom, l’emploi, le service et le revenu annuel ( à l’euro près) de tous les vendeurs.*/
+SELECT nom,emploi, serv.service, round(sal+comm) as revenu FROM serv,emp;
+
+/*75 : Sélectionner nom, prénom, emploi, salaire, commissions, revenu mensuel pour les employés des services 3,5,6*/
+SELECT DISTINCT nom, prenom, emploi, sal, comm, round((sal + comm)/12,2) as revenu 
+FROM emp, serv
+WHERE comm <> null and emp.noserv = 3 or emp.noserv = 5 or emp.noserv = 6;
+
+/*76 : Idem pour les employés des services 3,5,6 en remplaçant les noms des colonnes : SAL par SALAIRE, COMM par COMMISSIONS, SAL+IFNULL(COMM,0) par GAIN_MENSUEL.*/
+SELECT DISTINCT nom, prenom, emploi, sal as salaire, comm as commissions, round((sal + IFNULL(comm,0))/12,2) as GAIN_MENSUEL
+FROM emp, serv
+WHERE comm <> null and emp.noserv = 3 or emp.noserv = 5 or emp.noserv = 6;
+
+/*77 : Idem pour les employés des services 3,5,6 en remplaçant GAIN_ MENSUEL par GAIN MENSUEL*/
+SELECT DISTINCT nom, prenom, emploi, sal as salaire, comm as commissions, round((sal + IFNULL(comm,0))/12,2) as "GAIN MENSUEL"
+FROM emp, serv
+WHERE comm <> null and emp.noserv = 3 or emp.noserv = 5 or emp.noserv = 6;
+
+/*78 : Afficher le nom, l'emploi, les salaires journalier et horaire pour les employés des services 3,5,6 (22 jours/mois et 8 heures/jour), sans arrondi, arrondi au centime près.*/
+SELECT nom,emploi,round(sal/(22*12),2) AS "salaire journalier",round(sal/(22*12*8),2) as horaire from emp, serv WHERE emp.noserv in (3,5,6);
+
+/*79 : Idem sans arrondir mais en tronquant.*/
+SELECT nom,emploi,TRUNCATE(sal/(22*12),2) AS "salaire journalier",TRUNCATE(sal/(22*12*8),2) as horaire from emp, serv WHERE emp.noserv in (3,5,6);
+
+/*80 : Concaténer les colonnes Service et Ville en les reliant par " ----> ", les premières lettres des noms de villes doivent se trouver sur une même verticale.*/
+SELECT service, ville, rpad(service,(select max(length(service)) from serv),'-')|| '--->' || ville as 'service-->ville' from serv;
+
+/*81 : Sélectionner nom, emploi pour les employés en ajoutant une colonne "CODE EMPLOI", trier le résultat sur ce code.*/
+SELECT nom,emploi, CASE 
+WHEN emploi="PRESIDENT" THEN 1 
+WHEN emploi="DIRECTEUR" THEN 2 
+WHEN emploi= "COMPTABLE" THEN 3
+WHEN emploi="VENDEUR" THEN 4
+WHEN emploi="TECHNICIEN" THEN 5
+ELSE 0 END as CODE_EMPLOI FROM emp ORDER by CODE_EMPLOI;
+
+/*82 : Sélectionner les employés en remplaçant les noms par '*****' dans le service n°1, trier le résultat suivant le N° de service.*/
+SELECT emp.noserv, prenom, emploi,CASE 
+when emp.noserv=1 THEN "*****" 
+else emp.nom
+END AS 'nom'
+FROM emp, serv
+WHERE emp.noserv= serv.noserv
+ORDER BY emp.noserv ASC;
+
+/*83 : Sélectionner les noms des services en affichant que les 5 premiers caractères.*/
+SELECT LEFT(nom, 5), service FROM emp,serv;
+
+/*84 : Sélectionner les employés embauchés en 1988.*/
+SELECT noserv, nom, prenom, emploi, DATE_FORMAT(embauche,'%Y') as année_embauche
+FROM emp
+WHERE DATE_FORMAT(embauche,'%Y')= 1988;
+
+/*85 : Sélectionner les noms des employés sur 3 colonnes la première en majuscules, la seconde avec l'initiale en majuscule et le reste en minuscules, la troisième en minuscules.*/
+SELECT UPPER(nom) as nom_majuscule, 
+LOWER(nom) as nom_minuscule, 
+CONCAT(UPPER(SUBSTRING(nom,1,1)),LOWER(SUBSTRING(nom,2,(LENGTH(nom))))) as initiale_majuscule
+from emp;
+
+/*86 : Sélectionner les positions des premiers M et E dans les noms des employés*/
+SELECT nom,prenom,
+LOCATE("M",nom) as "position m", LOCATE("E",nom) as "position e"
+from emp;
+
+/*87 : Afficher le nombre de lettres qui sert à écrire le nom de chaque service.*/
+SELECT DISTINCT service,LENGTH (service) as "nombre lettre" from serv;
+
+/*88 : Tracer un Histogramme des salaires avec nom, emploi, salaire triés dans l'ordre décroissant (max de l’histogramme avec 30 caractères).*/
+select nom, emploi,sal, rpad('#',sal/2000,'#') as Histo_SAL from emp;
+
+/*89 : Sélectionner nom, emploi, date d'embauche des employés du service 6.*/
+SELECT nom,emploi, embauche from emp WHERE noserv =6;
+
+/*90 : Même chose en écrivant la colonne embauche sous la forme ‘dd-mm-yy’, renommée embauche*/
+SELECT nom,emploi, DATE_FORMAT(embauche,"%d-%m-%Y") as embauche from emp WHERE noserv =6;
+
+/*91 : Même chose en écrivant la colonne embauche sous la forme ‘day dd month yyyy'*/
+SELECT nom,emploi, DATE_FORMAT(embauche,"%D %d %M %Y") as embauche from emp WHERE noserv =6;
+
+/*92 : Même chose en écrivant la colonne embauche sous la forme ‘day dd month(abv) yy'*/
+SELECT nom,emploi, DATE_FORMAT(embauche,"%D %d %b %y") as embauche from emp WHERE noserv =6;
+
+/*93 : Même chose en écrivant la colonne embauche sous la forme ‘yy month(abv) dd'*/
+SELECT nom,emploi, DATE_FORMAT(embauche,"%y %b %d") as embauche from emp WHERE noserv =6;
+
+/*94 : Même chose en écrivant la colonne embauche sous la forme ‘Day-dd-Month-yyyy'*/
+SELECT nom,emploi, DATE_FORMAT(embauche,"%D-%d-%M-%Y") as embauche from emp WHERE noserv =6;
+
+/*95 : Sélectionner les employés avec leur ancienneté en jours dans l'entreprise.*/
+SELECT nom,prenom,embauche, DATEDIFF(sysdate(),embauche) as ancienneté from emp;
+
+/*96 : Sélectionner les employés avec leur ancienneté en mois dans l'entreprise.*/
+SELECT nom,prenom,embauche, TIMESTAMPDIFF(MONTH, embauche, sysdate()) as ancienneté_en_mois from emp;
+
+/*97 : Sélectionner toutes les dates d’embauche majorées de 12 ans.*/
+SELECT nom,prenom,embauche,YEAR(embauche)+12 as "embauche majorees 12" from emp;
+
+/*98 : Sélectionner les employés ayant plus de 12 ans d’ancienneté.*/
+SELECT nom, embauche FROM emp WHERE Year(embauche)>12;
+
+/*99 : Depuis combien de jours êtes-vous nés ?*/
+SELECT DATEDIFF(sysdate(),"1992-06-20") as jours_de_naissance;
+
+/*100 : Depuis combien de mois êtes-vous nés ?*/
+SELECT TIMESTAMPDIFF(MONTH, "1992-06-20", sysdate())as mois_de_naissance;
+
+/*101 : Afficher la moyenne des revenus (avec commission) des vendeurs.*/
+SELECT AVG(sal+comm) as "moyenne des revenu" from emp,serv WHERE emploi = "VENDEUR";
+
+/*102 : Paramétrer la requête qui précède sur l’emploi.*/
+SELECT round(AVG(sal+IFNULL (comm,0))) as "revenu moyen" from emp GROUP BY emploi;
+
+/*103 : Afficher la somme des salaires et la somme des commissions des vendeurs.*/
+SELECT sum(sal) as somme_des_salaires, SUM(comm) AS somme_des_commissions from emp where emploi="vendeur";
+
+/*104 : Afficher le plus haut salaire, le plus bas salaire, la différence entre les deux.*/
+SELECT MAX(sal) as "max sal", MIN(sal) as "min sal", ROUND(MAX(sal)-MIN(sal),2) as "difference salaire" FROM emp;
+
+/*105 : Compter les employés embauchés chaque année.*/
+
+/*106 : Afficher le nombre de lettres du service dont le nom est le plus court.*/
+
+/*107 : Sélectionner nom, emploi, revenu mensuel de l'employé qui gagne le plus.*/
+
+/*108 : Déterminer le nombre d'employés du service 3 qui reçoivent éventuellement une commission.*/
+
+/*109 : Déterminer le nombre d'emploi différents du service N°1.*/
+
+/*110 : Déterminer le nombre d'employés du service N°3.*/
+
+/*111 : Pour chaque service, afficher son N° et le salaire moyen des employés du service arrondi l’euro près.*/
+
+/*112 : Pour chaque service donner le salaire annuel moyen de tous les employés qui ne sont ni président, ni directeur.*/
+
+/*113 : Grouper les employés par service et par emploi à l'intérieur de chaque service, pour chaque groupe afficher l'effectif et le salaire moyen.*/
+
+/*114 : Idem en remplaçant le numéro de service par le nom du service.*/
+
+/*115 : Afficher l'emploi, l'effectif, le salaire moyen pour tout type d'emploi ayant plus de deux représentants.*/
+
+/*116 : Sélectionner les services ayant au mois deux vendeurs.*/
+
+/*117 : Sélectionner les services ayant une commission moyenne supérieure au quart du salaire moyen.*/
+
+/*118 : Sélectionner les emplois ayant un salaire moyen supérieur au salaire moyen des directeurs.*/
+
+/*119 : Afficher, sur la même ligne, pour chaque service, le nombre d'employés ne touchant pas de commission et le nombre d'employés touchant une commission.*/
+
+/*120 : Afficher l'effectif, la moyenne et le total pour les salaires et les commissions par emploi.*/
 
 
 
