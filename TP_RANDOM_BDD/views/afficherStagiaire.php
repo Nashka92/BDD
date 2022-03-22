@@ -36,27 +36,42 @@ session_start();
     </nav>
 
 
-    <!-- affichage de mon tableau -->
-    <div>
-        <?php
+    <table class="table table-striped">
+        <thead>
+            <tr>
+                <th scope="col">#</th>
+                <th scope="col">Nom</th>
+                <th scope="col">Prénom</th>
+                <th scope="col">Date de naissance</th>
+            </tr>
+        </thead>
+
+        <tbody>
+            <?php
+            for ($i = 0; $i < sizeof($_SESSION["tab"]); $i++) {
+                echo
+                '<tr>
+                <th scope=' . "row" . '>' . $_SESSION["tab"][$i]["ID"] . '</th>
+                <td>' . $_SESSION["tab"][$i]["nom"] . '</td>
+                <td>' . $_SESSION["tab"][$i]["prenom"] . '</td>
+                <td>' . $_SESSION["tab"][$i]["dateNaiss"] . '</td>
+            </tr>';
+            } ?>
+        </tbody>
+    </table>
 
 
-       echo "<table>";
-        for ($i = 0; $i < sizeof($_SESSION["tab"]); $i++) {
-            
-            echo "<tr>"
-            
-                ."<td>".'Id: ' . $_SESSION["tab"][$i]["ID"] . '<br/>'."</td>"
-                ."<td>". 'Nom: ' . $_SESSION["tab"][$i]["nom"] . '<br/>'."</td>"
-                ."<td>". 'Prénom: ' . $_SESSION["tab"][$i]["prenom"] . '<br/>'."</td>"
-                ."<td>". 'Date de naissance: ' . $_SESSION["tab"][$i]["dateNaiss"] . '<br/>'.'<br/>'. "</td>"
-                
-                ."</tr>";
-        }
 
-        echo"</table>";
-        
-        ?>
+
+
+
+
+
+
+
+
+
+
 
 
 
